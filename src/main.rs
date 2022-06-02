@@ -69,11 +69,13 @@ fn main() {
 
     let mut regexes: HashMap<&str, &str> = HashMap::new();
 
-    regexes.insert("Allocations", "m|c(alloc)");
+    regexes.insert("Allocations", "(calloc)|(malloc)");
     regexes.insert("Frees", "free");
     regexes.insert("Opens", "fopen");
     regexes.insert("Closes", "fclose");
+    regexes.insert("Switches", "switch");
     regexes.insert("Cases", "case");
+    regexes.insert("Defaults", "default");
     regexes.insert("Breaks", "break;");
     regexes.insert("Continues", "continue;");
 
@@ -83,8 +85,8 @@ fn main() {
 
         match count_file( path , &regexes) {
 
-            Ok(lines) => {
-                println!("{}\t{} lines", path.display(), lines );
+            Ok(_) => {
+                println!("{} processed successfully!", path.display());
             },
             Err( err ) => {
                 panic!("Error - {}", err );
