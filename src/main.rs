@@ -69,10 +69,10 @@ fn main() {
 
     let mut regexes: HashMap<&str, &str> = HashMap::new();
 
-    regexes.insert("Allocations", "alloc");
+    regexes.insert("Allocations", "m|c(alloc)");
     regexes.insert("Frees", "free");
     regexes.insert("Opens", "fopen");
-    regexes.insert("Closes", "flose");
+    regexes.insert("Closes", "fclose");
     regexes.insert("Cases", "case");
     regexes.insert("Breaks", "break;");
     regexes.insert("Continues", "continue;");
