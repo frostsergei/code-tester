@@ -3,86 +3,49 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 use std::env;
+use std::collections::HashMap;
 
-struct Stats {
-    allocs: i16,
-    frees: i16,
-    opens: i16,
-    closes: i16,
-    cases: i16,
-    breaks: i16,
-    continues: i16,
+use regex::Regex;
+
+
+fn count_words( s: String, reg: (&str,&str) ) {
+    let expr = Regex::new(reg.1).unwrap();
+    let count= expr.find_iter(&s).count();
+    println!("{}: {}", reg.0, count);
 }
 
-/*
- * Given a string, count the number of 
- * words within it.
- */
-fn count_words( s: &String ) -> i32 {
+fn counter<R: BufRead> ( reader: &mut R, regexes: HashMap<&str, &str> ) -> Result<(i32), String> {
 
-    let mut words: i32 = 0;
-
-    /*for c in s.chars() {
-
-        if c.is_whitespace() {
-            words += 1;    
-        }
-        
-    }
-
-    words + 1*/
-}
-
-// Static dispatch. 
-// Here we specify that count_words works for
-// objects with the BufRead trait only.
-fn counter<R: BufRead> ( reader: &mut R ) -> Result<( i32, Stats ), String> {
-
-    // Define our line and word count variables
     let mut total_lines: i32 = 0;
-    let mut total_words: i32 = 0;
-
-    // Create a String. This will be where each line is read to
     let mut line = String::from( "" );
 
-    // Start a loop
     loop{ 
-
-        // Attempt to read a line into 'line'
         match reader.read_line( &mut line ) {
-
-            // We successfully read some bytes
             Ok( _ ) => {
-
-                    // Exit loop if we didn't read any data.
                     if line.len() == 0 {
                         break;
                     }
 
-                    // Trim the string and increment lines & words
                     line = line.trim().to_string();
                     total_lines += 1;
-                    total_words += count_words( &line );
-                    // Clear the string buffer
+
+                    for regex in regexes{
+                        count_words( line, regex );
+                    }
+
                     line.clear(); 
             },
-            // If an error occurred, return it early
             Err( why ) => return Err( why.to_string() )
         };
     
 
     }
-    // Return the counts if everything went ok.
-    Ok( ( total_lines, total_words ) )
+    Ok( ( total_lines ) )
 }
 
-/*
- * Given a file, create a buffered reader, and
- * start reading & counting the data.
- */
-fn count_file( file_path: &Path ) -> Result< (i32,i32), String> {
 
-    // Attempt to open the file
+fn count_file( file_path: &Path, regexes: HashMap<&str, &str>) -> Result< (i32), String> {
+
     let file_handle = match File::open( &file_path ) {
         // Parse the result of open, returning an Err()
         // or a file_handle
@@ -94,8 +57,8 @@ fn count_file( file_path: &Path ) -> Result< (i32,i32), String> {
     let mut reader = BufReader::new( file_handle );
 
     // Call the counter and return the results.
-    let ( lines, words ) = counter( &mut reader )?;
-    Ok( ( lines, words ) )
+    let (lines) = counter( &mut reader, regexes )?;
+    Ok(lines)
 
 }
 
@@ -121,6 +84,16 @@ fn main() {
     // Get arguments from the command line, skipping the program name
     let files: Vec<String> = Vec::from( &args[1..] );
 
+    let mut regexes: HashMap<&str, &str> = HashMap::new();
+
+    regexes.insert("Allocations", "alloc");
+    regexes.insert("Frees", "free");
+    regexes.insert("Opens", "fopen");
+    regexes.insert("Closes", "flose");
+    regexes.insert("Cases", "case");
+    regexes.insert("Breaks", "break;");
+    regexes.insert("Continues", "continue;");
+
     // Iterate through file names
     for file_name in files.iter() {
         
@@ -128,10 +101,10 @@ fn main() {
         let path = Path::new( &file_name ); 
 
         // Execute count_file() on it, parsing the response.
-        match count_file( path ) {
+        match count_file( path , regexes) {
 
-            Ok( ( lines, words ) ) => {
-                println!("{}\t{} lines\t{} words.", path.display(), lines, words );
+            Ok( ( lines) ) => {
+                println!("{}\t{} lines", path.display(), lines );
             },
             Err( err ) => {
                 panic!("Error - {}", err );
